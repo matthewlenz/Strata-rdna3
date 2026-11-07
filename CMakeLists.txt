@@ -610,6 +610,13 @@ if(STRATA_ENABLE_CUDA OR STRATA_ENABLE_HIP)
   add_executable(strata src/program/generate.cpp)
   target_include_directories(strata PRIVATE ${_strata_gpu_include_directories})
   target_link_libraries(strata PRIVATE strata_engine strata_prefill strata_spec ${_strata_gpu_runtime_target})
+  if(STRATA_ENABLE_HIP)
+    # [claude] 11-07 src/core/kfdq.cpp (main e2151f1b/6677f039): the exported ioctl() lets the engine park its idle queues,
+    # so a card holding 9 queues (GPU_MAX_HW_QUEUES=8) idles at ~5-13 W instead of 100% busy at ~95 W (STRATA_KFDQ=0: off)
+    target_sources(strata PRIVATE src/core/kfdq.cpp)
+    target_link_options(strata PRIVATE "LINKER:--export-dynamic-symbol=ioctl")
+    target_link_libraries(strata PRIVATE ${CMAKE_DL_LIBS})
+  endif()
 
   if(STRATA_ENABLE_HIP)
     enable_testing()
